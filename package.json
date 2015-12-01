@@ -1,0 +1,24 @@
+{
+  "name": "gooeyneo",
+  "version": "1.0.0",
+  "description": "UI for simplified data entry",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "neo4j"
+  ],
+  "author": "David Park",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^1.5.0",
+    "body-parser": "^1.14.1",
+    "express": "^4.13.3",
+    "jade": "^1.11.0",
+    "neo4j": "^1.1.1",
+    "node-neo4j": "^2.0.3",
+    "request": "^2.67.0",
+    "streamline": "^1.0.11"
+  }
+}

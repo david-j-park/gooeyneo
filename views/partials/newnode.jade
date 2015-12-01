@@ -1,0 +1,22 @@
+.modal-header
+    h3 Add a Node
+.modal-body
+    .form-group
+        label Type/Label
+        input.form-control(ng-model="newnode.label",uib-typeahead="l for l in types | filter:$viewValue")
+    .form-group
+        label Name
+        input.form-control(ng-model="newnode.name",type="text")
+    .form-group
+        label Properties
+        .row(ng-repeat="p in newnode.extendedProps")
+            .col-sm-6
+                input.form-control(placeholder="name",ng-model="p.name")
+            .col-sm-6
+                input.form-control(placeholder="value",ng-model="p.value")
+        .row
+            .col-sm-12
+                button.btn.btn-primary(ng-click="newnode.extendedProps.push({})") Add Property
+.modal-footer
+    button.btn.btn-default(ng-click="cancel()") Cancel
+    button.btn.btn-success(ng-click="save()") Save

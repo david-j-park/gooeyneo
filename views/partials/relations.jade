@@ -1,0 +1,49 @@
+.row
+    .col-sm-12 
+        h1 Add Relations
+.row
+    .col-sm-3
+        h4 From Node
+    .col-sm-3
+        h4 Relationship
+    .col-sm-3
+        h4 To Node
+.row
+    .col-sm-3
+        | Choose type:
+        br
+        select.form-control(ng-model="fromType",ng-options="t for t in entityTypes",ng-change="loadByType('from') | orderBy: '+'")
+    .col-sm-3
+    .col-sm-3
+        | Choose type:
+        br
+        select.form-control(ng-model="toType",ng-show="!addingType",ng-options="t for t in entityTypes",ng-change="loadByType('to')")
+        input.form-control(ng-model="toType",ng-show="addingType",type="text")
+.row
+    .col-sm-3
+        select.form-control(ng-model="from",ng-options="n.name for n in fromEntities | orderBy: 'name'",ng-change="nodeQuery()")
+        | - OR -
+        br
+        button.btn.btn-sm.btn-primary(ng-click="newNode('from')") Create New
+    .col-sm-3
+        select.form-control(ng-model="relationship",ng-options="r for r in relationTypes | orderBy: 'name'")
+    .col-sm-3
+        select.form-control(ng-model="to",ng-options="n.name for n in toEntities | orderBy: 'name'",ng-change="nodeQuery()")
+        | - OR -
+        br
+        button.btn.btn-sm.btn-primary(ng-click="newNode('to')") Create New
+    .col-sm-3
+        button.btn.btn-success(ng-click="addRelationship()") Add
+.row
+    .col-sm-12
+        h4 Existing Relations
+.row(ng-repeat="r in nodeRelations")
+    .col-sm-3
+        | {{r[0].name}}
+    .col-sm-3
+        | {{r[1]}}
+    .col-sm-3
+        | {{r[2].name}}
+.row
+    .col-sm-12
+        d3-graph(nodes="nodes",links="links",width="width",height="height")
