@@ -93,14 +93,23 @@ app.directive('d3Graph', [function() {
 
 app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scope, $http, $q, $uibModal) {
 
-        $scope.loadByType = function(which) {
+        $scope.loadByType = function(which, preselect) {
+            console.log(preselect);
             $http.get('/api/nodes/' + (which == 'from' ? $scope.fromType : $scope.toType))
                     .then(function(data) {
 
-                        if (which == 'from')
+                        if (which == 'from') {
                             $scope.fromEntities = data.data.data;
-                        else
+                            $scope.from = $scope.fromEntities.filter(function(val){
+                                return val._id == preselect;
+                            })[0];
+                        }
+                        else {
                             $scope.toEntities = data.data.data;
+                            $scope.to = $scope.toEntities.filter(function(val){
+                                return val._id == preselect;
+                            })[0];
+                        }
                     });
         };
 
@@ -110,9 +119,19 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
                 end: $scope.to._id,
                 relationship: $scope.relationship
             }).then(function(data) {
+                if ($scope.relationTypes.indexOf($scope.relationship) === -1) $scope.relationTypes.push($scope.relationship);
                 $scope.relationship = null;
             });
         };
+        
+        $scope.capitalize = function(){
+            if ($scope.relationship) {
+                $scope.relationship = $scope.relationship.toUpperCase();
+                $scope.relationship = $scope.relationship.replace(' ', '_');
+                //remove special characters
+                $scope.relationship = $scope.relationship.replace(/[^_0-9A-Z]/g, '')
+            }
+        }
 
         $scope.from = null;
         $scope.to = null;
@@ -143,14 +162,12 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
                     }
                 }
             }).result.then(function(node) {
-                if ($scope.entityTypes.indexOf(node.label === -1))
-                    $scope.entityTypes.push(node.label);
+                if ($scope.entityTypes.indexOf(node.label) === -1) $scope.entityTypes.push(node.label);
                 if (which == 'from') {
                     $scope.fromType = node.label;
                 }
-                else
-                    $scope.toType = node.label;
-                $scope.loadByType(which);
+                else $scope.toType = node.label;
+                $scope.loadByType(which, node._id);
             });
         };
 
@@ -161,8 +178,8 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
                     from: $scope.from._id,
                     to: $scope.to._id
                 }).then(function(result) {
-                    console.log(result);
                     $scope.nodeRelations = result.data.data;
+                    /*
                     $scope.nodes = [
                         result.data.data[0][0], result.data.data[0][2]
 
@@ -170,6 +187,7 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
                     $scope.links = [
                         {source: 0, target: 1}
                     ]
+                    */
                 });
             }
         }

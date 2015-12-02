@@ -12,38 +12,41 @@
     .col-sm-3
         | Choose type:
         br
-        select.form-control(ng-model="fromType",ng-options="t for t in entityTypes",ng-change="loadByType('from') | orderBy: '+'")
+        select.form-control(ng-model="fromType",ng-options="t for t in entityTypes | orderBy: '+'",ng-change="loadByType('from')")
     .col-sm-3
     .col-sm-3
         | Choose type:
         br
-        select.form-control(ng-model="toType",ng-show="!addingType",ng-options="t for t in entityTypes",ng-change="loadByType('to')")
-        input.form-control(ng-model="toType",ng-show="addingType",type="text")
+        select.form-control(ng-model="toType",ng-options="t for t in entityTypes | orderBy: '+'",ng-change="loadByType('to')")
 .row
     .col-sm-3
         select.form-control(ng-model="from",ng-options="n.name for n in fromEntities | orderBy: 'name'",ng-change="nodeQuery()")
-        | - OR -
-        br
+        .vspace-10 - OR -
         button.btn.btn-sm.btn-primary(ng-click="newNode('from')") Create New
     .col-sm-3
-        select.form-control(ng-model="relationship",ng-options="r for r in relationTypes | orderBy: 'name'")
+        .input-group
+            input.form-control(type="text",ng-model="relationship",ng-blur="capitalize()")
+            .input-group-btn
+                .btn-group(uib-dropdown)
+                    button.btn.btn-default(uib-dropdown-toggle) 
+                        i.fa.fa-caret-down
+                    ul.uib-dropdown-menu
+                        li(role="menuitem",ng-repeat="r in relationTypes | orderBy: '+'") 
+                            a(ng-click="$parent.relationship = r") {{r}}
     .col-sm-3
         select.form-control(ng-model="to",ng-options="n.name for n in toEntities | orderBy: 'name'",ng-change="nodeQuery()")
-        | - OR -
-        br
+        .vspace-10 - OR -
         button.btn.btn-sm.btn-primary(ng-click="newNode('to')") Create New
     .col-sm-3
         button.btn.btn-success(ng-click="addRelationship()") Add
-.row
+.row(ng-show="nodeRelations.length")
     .col-sm-12
         h4 Existing Relations
-.row(ng-repeat="r in nodeRelations")
+.row(ng-repeat="r in nodeRelations",ng-show="nodeRelations.length")
     .col-sm-3
         | {{r[0].name}}
     .col-sm-3
         | {{r[1]}}
     .col-sm-3
         | {{r[2].name}}
-.row
-    .col-sm-12
-        d3-graph(nodes="nodes",links="links",width="width",height="height")
+
