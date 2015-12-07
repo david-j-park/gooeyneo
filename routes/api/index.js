@@ -9,4 +9,5 @@ router.get('/nodes/:label', api.getNodesWithLabel);
 router.post('/relationship', api.createRelationship);
 router.post('/relations', api.queryNodes);
 router.post('/node', api.createNode);
+router.get('/graph', api.graphQuery);
 module.exports = router;

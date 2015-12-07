@@ -5,3 +5,12 @@
 .vspace-10 {
     padding: 10px 0;
 }
+
+.node {
+    stroke: #003366;
+    fill: #fff;
+}
+
+.link {
+    stroke: #003366
+}

@@ -62,5 +62,18 @@ module.exports = {
             if (err) throw err;
             res.json(result);
         })
+    },
+    graphQuery: function(req, res){
+        var q = "MATCH (a:Application)-[r]->(n) RETURN a, r, n";
+        db.beginAndCommitTransaction({statements: [
+                {
+                    statement: q,
+                    parameters: {},
+                    resultDataContents: ['graph']
+                }
+        ]}, function(err, result){
+            if (err) throw err;
+            res.json(result);
+        });
     }
 };

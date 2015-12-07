@@ -1,9 +1,13 @@
-var app = angular.module('neoApp', ['ngRoute', 'ui.bootstrap']);
+var app = angular.module('neoApp', ['ngRoute', 'ui.bootstrap', 'd3Services']);
 
 app.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
         $routeProvider.when('/relations', {
             templateUrl: 'partials/relations',
             controller: 'RelsCtrl'
+        })
+                .when('/graphviewer', {
+                    templateUrl: 'partials/graphviz',
+                    controller: 'GraphCtrl'
         });
 
         $locationProvider.html5Mode(true);
@@ -19,9 +23,21 @@ app.directive('d3Graph', [function() {
                 height: '='
             },
             link: function(scope, element, attrs) {
+                
+                function ellipsize() {
+        var self = d3.select(this),
+            textLength = self.node().getComputedTextLength(),
+            text = self.text();
+        while (textLength > (width - 2 * padding) && text.length > 0) {
+            text = text.slice(0, -1);
+            self.text(text + '...');
+            textLength = self.node().getComputedTextLength();
+        }
+    } 
+                
                 var force = d3.layout.force()
                         .size([scope.width, scope.height])
-                        .charge(-5)
+                        .charge(-500)
                         .linkDistance(150);
                 var svg = d3.select(element[0]).append('svg')
                         .attr('width', scope.width)
@@ -38,20 +54,21 @@ app.directive('d3Graph', [function() {
                             .attr('class', 'link');
                     var node = svg.selectAll('.node')
                             .data(scope.nodes)
-                            .attr('class', 'node')
-                            .attr('r', 25)
-                            .attr("title", function(d){
-                                            return d.name;
-                                });
+                            .attr('class', 'node');
                                 
-                    node.enter().append('circle').attr('class', 'node')
-                            .attr('r', 25)
-                            .attr("title", function(d){
-                                            return d.name;
-                                })
-                                        .attr('cy', scope.height / 2)
-                                        .attr('cx', scope.width / 2);
+                    var grp = node.enter().append('g').attr("transform", function (d) {
+                        return "translate(" + d.x + "," + d.y + ")";
+                    }).attr('class', 'node').call(force.drag);
+                    
+                    grp.append('circle')
+                            .attr('r', 30);
+                    grp.append('text')
+                            .attr('text-anchor', 'middle');
                                 
+                    node.selectAll('text').text(function(d){
+                        return d.properties.name;
+                    });
+                    
                     node.exit().remove();
                     
                     force.on('tick', function() {
@@ -68,12 +85,9 @@ app.directive('d3Graph', [function() {
                                     return d.target.y;
                                 });
 
-                        node.attr("cx", function(d) {
-                            return d.x;
-                        })
-                                .attr("cy", function(d) {
-                                    return d.y;
-                                });
+                        node.attr("transform", function(d) {
+                             return "translate(" + d.x + "," + d.y + ")";
+                        });
                     })
                 }
                 
@@ -83,10 +97,11 @@ app.directive('d3Graph', [function() {
                     viz();
                 })
                 
+                /*
                 scope.$watch(attrs.links, function(val){
                     viz();
                 })
-                
+                */
             }
         };
     }]);
@@ -204,6 +219,22 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
 
 
     }]);
+
+app.controller('GraphCtrl', ['$scope', '$http', 'neoGraphToD3', function($scope, $http, ngd3){
+    
+    $scope.nodes = [];
+    $scope.links= [];
+    
+    $scope.query = function(){
+        $http.get('/api/graph').then(function(result){
+            var res = ngd3(result.data);
+            $scope.nodes = res.nodes;
+            $scope.links = res.links;
+        });
+    }
+    
+    $scope.query();
+}]);
 
 app.controller('ModalNodeCtrl', ['$scope', '$http', '$uibModalInstance', 'types', function($scope, $http, $uibModalInstance, types) {
 
