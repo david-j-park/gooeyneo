@@ -8,7 +8,7 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
                 .when('/graphviewer', {
                     templateUrl: 'partials/graphviz',
                     controller: 'GraphCtrl'
-        });
+                });
 
         $locationProvider.html5Mode(true);
     }]);
@@ -20,57 +20,62 @@ app.directive('d3Graph', [function() {
                 nodes: '=',
                 links: '=',
                 width: '=',
-                height: '='
+                height: '=',
+                graph: '='
             },
             link: function(scope, element, attrs) {
-                
-                function ellipsize() {
-        var self = d3.select(this),
-            textLength = self.node().getComputedTextLength(),
-            text = self.text();
-        while (textLength > (width - 2 * padding) && text.length > 0) {
-            text = text.slice(0, -1);
-            self.text(text + '...');
-            textLength = self.node().getComputedTextLength();
-        }
-    } 
-                
+
                 var force = d3.layout.force()
                         .size([scope.width, scope.height])
                         .charge(-500)
-                        .linkDistance(150);
+                        .linkDistance(150)
+                        .gravity(0.1);
                 var svg = d3.select(element[0]).append('svg')
                         .attr('width', scope.width)
-                        .attr('height', scope.height);
+                        .attr('height', scope.height)
+                        .append('g');
 
                 function viz() {
-
-                    force.nodes(scope.nodes)
-                            .links(scope.links)
+                    console.log(scope.graph);
+                    force.nodes(scope.graph.nodes)
+                            .links(scope.graph.links)
                             .start();
                     var link = svg.selectAll('.link')
-                            .data(scope.links)
+                            .data(scope.graph.links)
                             .enter().append("line")
                             .attr('class', 'link');
+                    var linkText = svg.selectAll('.linkText')
+                            .data(scope.graph.links)
+                            .enter().append('g').attr("transform", function(d) {
+                        return "translate(" + d.source.x + "," + d.source.y + ") " +
+                                "rotate(" + (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI) + ")";
+                    }).attr('class', 'linkText');
+                    linkText.append('text').attr('text-anchor', 'middle');
+                    var linkLabels = linkText.selectAll('text').text(function(d) {
+                        return d.type;
+                    }).attr('x', force.linkDistance() / 2).on('click', function(d) {
+                        console.log(d);
+                    });
+
                     var node = svg.selectAll('.node')
-                            .data(scope.nodes)
+                            .data(scope.graph.nodes)
                             .attr('class', 'node');
-                                
-                    var grp = node.enter().append('g').attr("transform", function (d) {
+
+                    var grp = node.enter().append('g').attr("transform", function(d) {
                         return "translate(" + d.x + "," + d.y + ")";
                     }).attr('class', 'node').call(force.drag);
-                    
+
                     grp.append('circle')
-                            .attr('r', 30);
+                            .attr('r', 2);
                     grp.append('text')
                             .attr('text-anchor', 'middle');
-                                
-                    node.selectAll('text').text(function(d){
+
+                    node.selectAll('text').text(function(d) {
                         return d.properties.name;
                     });
-                    
+
                     node.exit().remove();
-                    
+
                     force.on('tick', function() {
                         link.attr("x1", function(d) {
                             return d.source.x;
@@ -84,29 +89,28 @@ app.directive('d3Graph', [function() {
                                 .attr("y2", function(d) {
                                     return d.target.y;
                                 });
+                        linkText.attr("transform", function(d) {
+                            return "translate(" + d.source.x + "," + d.source.y + ") " +
+                                    "rotate(" + (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI) + ")";
+                        });
+
+
 
                         node.attr("transform", function(d) {
-                             return "translate(" + d.x + "," + d.y + ")";
+                            return "translate(" + d.x + "," + d.y + ")";
                         });
                     })
                 }
-                
-                scope.$watch(attrs.nodes, function(val){
-                    //console.log(val);
-                    //scope.nodes = val;
+
+                scope.$watch(attrs.graph, function(val) {
                     viz();
                 })
-                
-                /*
-                scope.$watch(attrs.links, function(val){
-                    viz();
-                })
-                */
+
             }
         };
     }]);
 
-app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scope, $http, $q, $uibModal) {
+app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', '$window', function($scope, $http, $q, $uibModal, $window) {
 
         $scope.loadByType = function(which, preselect) {
             console.log(preselect);
@@ -115,13 +119,13 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
 
                         if (which == 'from') {
                             $scope.fromEntities = data.data.data;
-                            $scope.from = $scope.fromEntities.filter(function(val){
+                            $scope.from = $scope.fromEntities.filter(function(val) {
                                 return val._id == preselect;
                             })[0];
                         }
                         else {
                             $scope.toEntities = data.data.data;
-                            $scope.to = $scope.toEntities.filter(function(val){
+                            $scope.to = $scope.toEntities.filter(function(val) {
                                 return val._id == preselect;
                             })[0];
                         }
@@ -134,12 +138,13 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
                 end: $scope.to._id,
                 relationship: $scope.relationship
             }).then(function(data) {
-                if ($scope.relationTypes.indexOf($scope.relationship) === -1) $scope.relationTypes.push($scope.relationship);
+                if ($scope.relationTypes.indexOf($scope.relationship) === -1)
+                    $scope.relationTypes.push($scope.relationship);
                 $scope.relationship = null;
             });
         };
-        
-        $scope.capitalize = function(){
+
+        $scope.capitalize = function() {
             if ($scope.relationship) {
                 $scope.relationship = $scope.relationship.toUpperCase();
                 $scope.relationship = $scope.relationship.replace(' ', '_');
@@ -161,8 +166,8 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
         $scope.nodeRelations = [];
 
         /* visualizer stuff */
-        $scope.width = 500;
-        $scope.height = 500;
+        $scope.width = $window.innerWidth;
+        $scope.height = $window.innerHeight;
         $scope.nodes = [];
         $scope.links = [];
 
@@ -177,11 +182,13 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
                     }
                 }
             }).result.then(function(node) {
-                if ($scope.entityTypes.indexOf(node.label) === -1) $scope.entityTypes.push(node.label);
+                if ($scope.entityTypes.indexOf(node.label) === -1)
+                    $scope.entityTypes.push(node.label);
                 if (which == 'from') {
                     $scope.fromType = node.label;
                 }
-                else $scope.toType = node.label;
+                else
+                    $scope.toType = node.label;
                 $scope.loadByType(which, node._id);
             });
         };
@@ -194,15 +201,6 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
                     to: $scope.to._id
                 }).then(function(result) {
                     $scope.nodeRelations = result.data.data;
-                    /*
-                    $scope.nodes = [
-                        result.data.data[0][0], result.data.data[0][2]
-
-                    ];
-                    $scope.links = [
-                        {source: 0, target: 1}
-                    ]
-                    */
                 });
             }
         }
@@ -220,21 +218,22 @@ app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', function($scop
 
     }]);
 
-app.controller('GraphCtrl', ['$scope', '$http', 'neoGraphToD3', function($scope, $http, ngd3){
-    
-    $scope.nodes = [];
-    $scope.links= [];
-    
-    $scope.query = function(){
-        $http.get('/api/graph').then(function(result){
-            var res = ngd3(result.data);
-            $scope.nodes = res.nodes;
-            $scope.links = res.links;
-        });
-    }
-    
-    $scope.query();
-}]);
+app.controller('GraphCtrl', ['$scope', '$http', 'neoGraphToD3', '$window', function($scope, $http, ngd3, $window) {
+
+        $scope.width = $window.innerWidth;
+        $scope.height = $window.innerHeight;
+        $scope.graph = {nodes: [], links: []}
+
+        $scope.query = function() {
+            $http.get('/api/graph').then(function(result) {
+                var res = ngd3(result.data);
+                $scope.graph = {nodes: res.nodes,
+                    links: res.links};
+            });
+        }
+
+        $scope.query();
+    }]);
 
 app.controller('ModalNodeCtrl', ['$scope', '$http', '$uibModalInstance', 'types', function($scope, $http, $uibModalInstance, types) {
 

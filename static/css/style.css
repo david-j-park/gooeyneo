@@ -7,10 +7,18 @@
 }
 
 .node {
-    stroke: #003366;
-    fill: #fff;
+    fill: #036;
+}
+
+text {
+    stroke: none;
+    fill: #003366;
 }
 
 .link {
-    stroke: #003366
+    stroke: #cecece
+}
+
+.linkText text {
+    fill: #cecece;
 }
