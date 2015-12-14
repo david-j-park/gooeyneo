@@ -38,53 +38,77 @@ svcmodule.directive('d3Graph', [function() {
         return {
             restrict: 'E',
             scope: {
-                nodes: '=',
-                links: '=',
                 width: '=',
                 height: '=',
-                graph: '='
+                graph: '=',
+                onNodeClick: '='
             },
             link: function(scope, element, attrs) {
-
+                var center = [scope.width / 2, scope.height / 2];
                 var force = d3.layout.force()
                         .size([scope.width, scope.height])
                         .charge(-500)
                         .linkDistance(150)
-                        .gravity(0.1);
+                        .gravity(0.1)
+                        .friction(0.6);
                 var svg = d3.select(element[0]).append('svg')
                         .attr('width', scope.width)
                         .attr('height', scope.height)
                         .append('g');
-
+                
+                // "indexes" of ids in the nodes/links arrays
+                var nindex = {}, lindex = {};
+                scope.graph.nodes.forEach(function(val){
+                    nindex[val._id] = true;
+                });
+                scope.graph.links.forEach(function(val){
+                    lindex[val._id] = true;
+                })
+                
                 function viz() {
-                    console.log(scope.graph);
                     force.nodes(scope.graph.nodes)
                             .links(scope.graph.links)
                             .start();
+                    
+                    /* event handlers */
+                    function nodeClick(d, i){
+                        scope.onNodeClick(d);
+                    }
+                    
+                    /* connectors */
                     var link = svg.selectAll('.link')
-                            .data(scope.graph.links)
-                            .enter().append("line")
+                            .data(scope.graph.links);
+                    link.enter().append("line")
                             .attr('class', 'link');
+                    
+                    /* link labels */
                     var linkText = svg.selectAll('.linkText')
-                            .data(scope.graph.links)
-                            .enter().append('g').attr("transform", function(d) {
+                            .data(scope.graph.links);
+                    
+                    linkText.enter().append('g').attr("transform", function(d) {
+                        var angle = (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI);
+                        if (Math.abs(angle) > 90) angle = Math.abs(angle) - 180;
                         return "translate(" + d.source.x + "," + d.source.y + ") " +
-                                "rotate(" + (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI) + ")";
-                    }).attr('class', 'linkText');
-                    linkText.append('text').attr('text-anchor', 'middle');
+                                "rotate(" + angle + ")";
+                    }).attr('class', 'linkText').append('text').attr('text-anchor', 'middle');
+                    
+                    
+                    
                     var linkLabels = linkText.selectAll('text').text(function(d) {
                         return d.type;
                     }).attr('x', force.linkDistance() / 2).on('click', function(d) {
-                        console.log(d);
+                        //console.log(d);
                     });
 
                     var node = svg.selectAll('.node')
                             .data(scope.graph.nodes)
-                            .attr('class', 'node');
+                            .attr('class', 'node').on('click', nodeClick);
 
                     var grp = node.enter().append('g').attr("transform", function(d) {
                         return "translate(" + d.x + "," + d.y + ")";
-                    }).attr('class', 'node').call(force.drag);
+                    }).attr('class', 'node').on('click', nodeClick).call(force.drag).each(function(d){
+                        nindex[d._id] = true;
+                    });
 
                     grp.append('circle')
                             .attr('r', 2);
@@ -95,7 +119,14 @@ svcmodule.directive('d3Graph', [function() {
                         return d.properties.name;
                     });
 
-                    node.exit().remove();
+                    node.exit().each(function(d){
+                        //remove from index
+                        nindex[d._id] = false; 
+                    }).remove();
+                    
+                    link.exit().each(function(d){
+                        lindex[d._id] = false;
+                    }).remove();
 
                     force.on('tick', function() {
                         link.attr("x1", function(d) {
@@ -111,21 +142,29 @@ svcmodule.directive('d3Graph', [function() {
                                     return d.target.y;
                                 });
                         linkText.attr("transform", function(d) {
+                            var angle = (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI);
                             return "translate(" + d.source.x + "," + d.source.y + ") " +
-                                    "rotate(" + (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI) + ")";
+                                    "rotate(" + angle + ")";
                         });
+                        
+                        linkLabels.attr("transform", function(d){
+                            var angle = (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI);
+                            if (Math.abs(angle) > 90) return "rotate (180 75 0)";
+                        })
 
 
 
                         node.attr("transform", function(d) {
                             return "translate(" + d.x + "," + d.y + ")";
                         });
-                    })
+                    });
+                    
+                    
                 }
 
-                scope.$watch(attrs.graph, function(val) {
+                scope.$watch(attrs.graph, function(old, newval) {
                     viz();
-                })
+                }, true)
 
             }
         };

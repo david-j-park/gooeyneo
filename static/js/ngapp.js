@@ -8,9 +8,62 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
                 .when('/graphviewer', {
                     templateUrl: 'partials/graphviz',
                     controller: 'GraphCtrl'
+                })
+                .when('/minigraph', {
+                    templateUrl: 'partials/mini',
+                    controller: 'MiniCtrl'
                 });
 
         $locationProvider.html5Mode(true);
+    }]);
+
+app.controller('MiniCtrl', ['$scope', function($scope) {
+        $scope.nextId = 3;
+        $scope.graph = {
+            nodes: [{
+                    _id: 1,
+                    x: 0,
+                    y:250,
+                    properties: {
+                        name: "Node 1"
+                    }
+                },
+                {
+                    _id: 2,
+                    x: 500,
+                    y: 250,
+                    properties: {
+                        name: "Node 2"                    
+                    }
+                }],
+            links: [{
+                    source: 0,
+                    target: 1,
+                    type: "RELATES_TO"
+                }]
+        }
+        
+        $scope.addNode = function(){
+            $scope.graph.nodes.push({
+                _id: $scope.nextId,
+                x: 50,
+                y: 50,
+                properties: {
+                    name: "Node " + $scope.nextId
+                }
+            });
+            $scope.graph.links.push({
+                source: $scope.nextId - 2,
+                target: $scope.nextId - 1,
+                type: "RELATES_TO"
+            });
+            $scope.nextId++;
+            //console.log($scope.graph);
+        }
+        
+        $scope.nodeClick = function(node){
+            console.log(node);
+        }
     }]);
 
 
