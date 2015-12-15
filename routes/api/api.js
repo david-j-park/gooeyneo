@@ -75,5 +75,20 @@ module.exports = {
             if (err) throw err;
             res.json(result);
         });
+    },
+    relatedNodes: function(req, res){
+        var q = "MATCH (n)-[r]-(m) WHERE Id(n) = {sourceId} RETURN n, r, m";
+        db.beginAndCommitTransaction({statements: [
+                {
+                    statement: q,
+                    parameters: {
+                        sourceId: parseInt(req.params.id)
+                    },
+                    resultDataContents: ['graph']
+                }
+        ]}, function(err, result){
+            if (err) throw err;
+            res.json(result);
+        });
     }
 };

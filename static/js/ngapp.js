@@ -12,6 +12,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
                 .when('/minigraph', {
                     templateUrl: 'partials/mini',
                     controller: 'MiniCtrl'
+                })
+                .when('/explorer', {
+                    controller: 'ExploreCtrl',
+                    templateUrl: 'partials/explorer'
                 });
 
         $locationProvider.html5Mode(true);
@@ -21,31 +25,32 @@ app.controller('MiniCtrl', ['$scope', function($scope) {
         $scope.nextId = 3;
         $scope.graph = {
             nodes: [{
-                    _id: 1,
+                    id: 1,
                     x: 0,
-                    y:250,
+                    y: 250,
                     properties: {
                         name: "Node 1"
                     }
                 },
                 {
-                    _id: 2,
+                    id: 2,
                     x: 500,
                     y: 250,
                     properties: {
-                        name: "Node 2"                    
+                        name: "Node 2"
                     }
                 }],
             links: [{
                     source: 0,
                     target: 1,
-                    type: "RELATES_TO"
+                    type: "RELATES_TO",
+                    id: 100
                 }]
         }
-        
-        $scope.addNode = function(){
+
+        $scope.addNode = function() {
             $scope.graph.nodes.push({
-                _id: $scope.nextId,
+                id: $scope.nextId,
                 x: 50,
                 y: 50,
                 properties: {
@@ -55,17 +60,44 @@ app.controller('MiniCtrl', ['$scope', function($scope) {
             $scope.graph.links.push({
                 source: $scope.nextId - 2,
                 target: $scope.nextId - 1,
-                type: "RELATES_TO"
+                type: "RELATES_TO",
+                id: $scope.nextId + 100
             });
             $scope.nextId++;
             //console.log($scope.graph);
         }
-        
-        $scope.nodeClick = function(node){
+
+        $scope.nodeClick = function(node) {
             console.log(node);
         }
     }]);
 
+app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scope, $http, ngd3) {
+        var linkIndex = [], nodeindex = [];
+        $scope.graph = {nodes: [], links: []};
+        $scope.startNode = 59;
+
+        $scope.nodeClick = function(n) {
+            $http.get('/api/node/' + n.id + '/related').then(function(data) {
+                $scope.graph = ngd3(data.data, $scope.graph);
+            });
+        };
+
+        $http.get('/api/node/' + $scope.startNode + '/related').then(function(data) {
+            $scope.graph = ngd3(data.data);
+            /*
+            //merge with existing
+            newGraph.nodes.forEach(function(val) {
+                if (nodeindex.indexOf(val.id) == -1)
+                    $scope.graph.nodes.push(val);
+            });
+            newGraph.links.forEach(function(val) {
+                if (linkIndex.indexOf(val.id) == -1)
+                    $scope.graph.links.push(val);
+            })
+            */
+        });
+    }])
 
 app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', '$window', function($scope, $http, $q, $uibModal, $window) {
 
@@ -179,7 +211,10 @@ app.controller('GraphCtrl', ['$scope', '$http', 'neoGraphToD3', '$window', funct
 
         $scope.width = $window.innerWidth;
         $scope.height = $window.innerHeight;
-        $scope.graph = {nodes: [], links: []}
+        $scope.graph = {nodes: [], links: []};
+        $scope.nodeClick = function(node) {
+            console.log(node);
+        };
 
         $scope.query = function() {
             $http.get('/api/graph').then(function(result) {
@@ -187,7 +222,7 @@ app.controller('GraphCtrl', ['$scope', '$http', 'neoGraphToD3', '$window', funct
                 $scope.graph = {nodes: res.nodes,
                     links: res.links};
             });
-        }
+        };
 
         $scope.query();
     }]);

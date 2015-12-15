@@ -1,9 +1,14 @@
 var svcmodule = angular.module('d3Services', []);
 
 svcmodule.factory('neoGraphToD3', function(){
-    return function(neograph){
+    return function(neograph, graphToMerge){
         var nodes = [], nodeIndex = [], links = [], linkIndex = [];
-        
+        if (graphToMerge) {
+            nodes = graphToMerge.nodes || [];
+            nodeIndex = graphToMerge.nindex || [];
+            links = graphToMerge.links || [];
+            linkIndex = graphToMerge.lindex || [];
+        }
         neograph.results[0].data.forEach(function(val, i){
             
             /* add nodes to array if not already present */
@@ -23,13 +28,16 @@ svcmodule.factory('neoGraphToD3', function(){
                     id: l.id,
                     properties: l.properties
                 });
+                linkIndex.push(l.id);
             });
             
         });
         
         return {
             nodes: nodes,
-            links: links
+            links: links,
+            nindex: nodeIndex,
+            lindex: linkIndex
         };
     };
 });
@@ -59,10 +67,10 @@ svcmodule.directive('d3Graph', [function() {
                 // "indexes" of ids in the nodes/links arrays
                 var nindex = {}, lindex = {};
                 scope.graph.nodes.forEach(function(val){
-                    nindex[val._id] = true;
+                    nindex[val.id] = true;
                 });
                 scope.graph.links.forEach(function(val){
-                    lindex[val._id] = true;
+                    lindex[val.id] = true;
                 })
                 
                 function viz() {
@@ -72,7 +80,7 @@ svcmodule.directive('d3Graph', [function() {
                     
                     /* event handlers */
                     function nodeClick(d, i){
-                        scope.onNodeClick(d);
+                        if (typeof(scope.onNodeClick) == 'function') scope.onNodeClick(d);
                     }
                     
                     /* connectors */
@@ -90,7 +98,14 @@ svcmodule.directive('d3Graph', [function() {
                         if (Math.abs(angle) > 90) angle = Math.abs(angle) - 180;
                         return "translate(" + d.source.x + "," + d.source.y + ") " +
                                 "rotate(" + angle + ")";
-                    }).attr('class', 'linkText').append('text').attr('text-anchor', 'middle');
+                    }).attr('class', 'linkText').append('text').attr('text-anchor', 'middle')
+                            .each(function(d){
+                                lindex[d.id] = true;
+                                console.log(lindex);
+                    }).on('contextmenu', function(d){
+                        d3.event.preventDefault();
+                        console.log(d.id);
+                    });
                     
                     
                     
@@ -102,12 +117,13 @@ svcmodule.directive('d3Graph', [function() {
 
                     var node = svg.selectAll('.node')
                             .data(scope.graph.nodes)
-                            .attr('class', 'node').on('click', nodeClick);
+                            .attr('class', 'node').on('dblclick', nodeClick);
 
                     var grp = node.enter().append('g').attr("transform", function(d) {
                         return "translate(" + d.x + "," + d.y + ")";
-                    }).attr('class', 'node').on('click', nodeClick).call(force.drag).each(function(d){
+                    }).attr('class', 'node').on('dblclick', nodeClick).call(force.drag).each(function(d){
                         nindex[d._id] = true;
+//                        console.log(nindex);
                     });
 
                     grp.append('circle')
@@ -121,11 +137,11 @@ svcmodule.directive('d3Graph', [function() {
 
                     node.exit().each(function(d){
                         //remove from index
-                        nindex[d._id] = false; 
+                        nindex[d.id] = false; 
                     }).remove();
                     
                     link.exit().each(function(d){
-                        lindex[d._id] = false;
+                        lindex[d.id] = false;
                     }).remove();
 
                     force.on('tick', function() {
