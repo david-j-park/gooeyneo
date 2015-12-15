@@ -75,6 +75,8 @@ app.controller('MiniCtrl', ['$scope', function($scope) {
 app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scope, $http, ngd3) {
         var linkIndex = [], nodeindex = [];
         $scope.graph = {nodes: [], links: []};
+        $scope.width = 800;
+        $scope.height = 800;
         $scope.startNode = 59;
 
         $scope.nodeClick = function(n) {
@@ -84,7 +86,11 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
         };
 
         $http.get('/api/node/' + $scope.startNode + '/related').then(function(data) {
-            $scope.graph = ngd3(data.data);
+            var graph = ngd3(data.data);
+            graph.nodes[0].x = $scope.width / 2;
+            graph.nodes[0].y = $scope.height / 2;
+            graph.nodes[0].fixed = true;
+            $scope.graph = graph;
             /*
             //merge with existing
             newGraph.nodes.forEach(function(val) {

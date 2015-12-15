@@ -124,16 +124,26 @@ svcmodule.directive('d3Graph', [function() {
                     }).attr('class', 'node').on('dblclick', nodeClick).call(force.drag).each(function(d){
                         nindex[d._id] = true;
 //                        console.log(nindex);
+                    }).on('click', function(d){
+                        d.fixed = true;
                     });
 
                     grp.append('circle')
-                            .attr('r', 2);
+                            .attr('r', 25);
                     grp.append('text')
                             .attr('text-anchor', 'middle');
 
-                    node.selectAll('text').text(function(d) {
-                        return d.properties.name;
-                    });
+                    node.selectAll('text').each(function(d){
+                        var el = d3.select(this);
+                        var wds = d.properties.name.split(' ');
+                        el.text('');
+                        var max = (wds.length < 3 ? wds.length : 3);
+                        for (var i=0; i<max; i++){
+                            var tspan = el.append('tspan').text(wds[i]);
+                            if (i > 0) tspan.attr('x', 0).attr('dy', 12);
+                        }
+                        el.attr('dy', (max - 1) * -5);
+                    }).attr('dominant-baseline', 'middle');
 
                     node.exit().each(function(d){
                         //remove from index
