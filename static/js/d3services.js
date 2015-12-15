@@ -1,7 +1,7 @@
 var svcmodule = angular.module('d3Services', []);
 
-svcmodule.factory('neoGraphToD3', function(){
-    return function(neograph, graphToMerge){
+svcmodule.factory('neoGraphToD3', function() {
+    return function(neograph, graphToMerge) {
         var nodes = [], nodeIndex = [], links = [], linkIndex = [];
         if (graphToMerge) {
             nodes = graphToMerge.nodes || [];
@@ -9,18 +9,18 @@ svcmodule.factory('neoGraphToD3', function(){
             links = graphToMerge.links || [];
             linkIndex = graphToMerge.lindex || [];
         }
-        neograph.results[0].data.forEach(function(val, i){
-            
+        neograph.results[0].data.forEach(function(val, i) {
+
             /* add nodes to array if not already present */
-            val.graph.nodes.forEach(function(n){
+            val.graph.nodes.forEach(function(n) {
                 if (nodeIndex.indexOf(n.id) === -1) {
                     nodes.push(n);
                     nodeIndex.push(n.id).toString();
                 }
             });
-            
+
             /* process links to d3's expected format */
-            val.graph.relationships.forEach(function(l){
+            val.graph.relationships.forEach(function(l) {
                 links.push({
                     source: nodeIndex.indexOf(l.startNode),
                     target: nodeIndex.indexOf(l.endNode),
@@ -30,9 +30,9 @@ svcmodule.factory('neoGraphToD3', function(){
                 });
                 linkIndex.push(l.id);
             });
-            
+
         });
-        
+
         return {
             nodes: nodes,
             links: links,
@@ -63,56 +63,80 @@ svcmodule.directive('d3Graph', [function() {
                         .attr('width', scope.width)
                         .attr('height', scope.height)
                         .append('g');
-                
+
                 // "indexes" of ids in the nodes/links arrays
                 var nindex = {}, lindex = {};
-                scope.graph.nodes.forEach(function(val){
+                scope.graph.nodes.forEach(function(val) {
                     nindex[val.id] = true;
                 });
-                scope.graph.links.forEach(function(val){
+                scope.graph.links.forEach(function(val) {
                     lindex[val.id] = true;
                 })
-                
+
                 function viz() {
+
+                    /* rotation/distance function for links */
+                    function rotationAngle(p1, p2) {
+                        var dy, dx;
+                        dy = (p1.y - p2.y);
+                        dx = (p2.x - p1.x);
+                        var theta = Math.atan2(dy, dx) * 180 / Math.PI;
+                        if (theta < 0)
+                            theta = Math.abs(theta);
+                        else
+                            theta = 360 - theta;
+                        return theta;
+                    }
+
+                    function linkLength(p1, p2) {
+                        return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+                    }
+
                     force.nodes(scope.graph.nodes)
                             .links(scope.graph.links)
                             .start();
-                    
+
                     /* event handlers */
-                    function nodeClick(d, i){
-                        if (typeof(scope.onNodeClick) == 'function') scope.onNodeClick(d);
+                    function nodeClick(d, i) {
+                        if (typeof (scope.onNodeClick) === 'function')
+                            scope.onNodeClick(d);
                     }
-                    
-                    /* connectors */
-                    var link = svg.selectAll('.link')
-                            .data(scope.graph.links);
-                    link.enter().append("line")
-                            .attr('class', 'link');
-                    
+
                     /* link labels */
-                    var linkText = svg.selectAll('.linkText')
+                    var links = svg.selectAll('.link')
                             .data(scope.graph.links);
-                    
-                    linkText.enter().append('g').attr("transform", function(d) {
-                        var angle = (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI);
-                        if (Math.abs(angle) > 90) angle = Math.abs(angle) - 180;
+
+                    var link = links.enter().append('g').attr("transform", function(d) {
+                        var angle = rotationAngle(d.source, d.target);
                         return "translate(" + d.source.x + "," + d.source.y + ") " +
                                 "rotate(" + angle + ")";
-                    }).attr('class', 'linkText').append('text').attr('text-anchor', 'middle')
-                            .each(function(d){
+                    }).attr('class', 'link');
+                            
+                    link.append('text').attr('text-anchor', 'middle')
+                            .each(function(d) {
                                 lindex[d.id] = true;
                                 console.log(lindex);
-                    }).on('contextmenu', function(d){
-                        d3.event.preventDefault();
-                        console.log(d.id);
-                    });
-                    
-                    
-                    
-                    var linkLabels = linkText.selectAll('text').text(function(d) {
+                            });
+                            
+                    link.append('path');
+
+
+                    /* link text */
+                    var linkLabels = links.selectAll('text').text(function(d) {
                         return d.type;
-                    }).attr('x', force.linkDistance() / 2).on('click', function(d) {
+                    }).attr('x', function(d) {
+                        return linkLength(d.source, d.target) / 2;
+                    }).on('click', function(d) {
                         //console.log(d);
+                    });
+
+                    /* link lines */
+                    var linkLines = links.selectAll('path').attr('d', function(d) {
+                        var l = linkLength(d.source, d.target);
+                        var end = l - 25;
+                        console.log(end);
+                        var p = "M25 0.5 L" + end + " 0.5 Z";
+                        return p;
                     });
 
                     var node = svg.selectAll('.node')
@@ -121,11 +145,11 @@ svcmodule.directive('d3Graph', [function() {
 
                     var grp = node.enter().append('g').attr("transform", function(d) {
                         return "translate(" + d.x + "," + d.y + ")";
-                    }).attr('class', 'node').on('dblclick', nodeClick).call(force.drag).each(function(d){
+                    }).attr('class', 'node').on('click', function(d) {
+                        d.fixed = true;
+                    }).on('dblclick', nodeClick).call(force.drag).each(function(d) {
                         nindex[d._id] = true;
 //                        console.log(nindex);
-                    }).on('click', function(d){
-                        d.fixed = true;
                     });
 
                     grp.append('circle')
@@ -133,49 +157,51 @@ svcmodule.directive('d3Graph', [function() {
                     grp.append('text')
                             .attr('text-anchor', 'middle');
 
-                    node.selectAll('text').each(function(d){
+                    node.selectAll('text').each(function(d) {
                         var el = d3.select(this);
                         var wds = d.properties.name.split(' ');
                         el.text('');
                         var max = (wds.length < 3 ? wds.length : 3);
-                        for (var i=0; i<max; i++){
+                        for (var i = 0; i < max; i++) {
                             var tspan = el.append('tspan').text(wds[i]);
-                            if (i > 0) tspan.attr('x', 0).attr('dy', 12);
+                            if (i > 0)
+                                tspan.attr('x', 0).attr('dy', 12);
                         }
                         el.attr('dy', (max - 1) * -5);
                     }).attr('dominant-baseline', 'middle');
 
-                    node.exit().each(function(d){
+                    node.exit().each(function(d) {
                         //remove from index
-                        nindex[d.id] = false; 
+                        nindex[d.id] = false;
                     }).remove();
-                    
-                    link.exit().each(function(d){
+
+                    links.exit().each(function(d) {
                         lindex[d.id] = false;
                     }).remove();
 
                     force.on('tick', function() {
-                        link.attr("x1", function(d) {
-                            return d.source.x;
-                        })
-                                .attr("y1", function(d) {
-                                    return d.source.y;
-                                })
-                                .attr("x2", function(d) {
-                                    return d.target.x;
-                                })
-                                .attr("y2", function(d) {
-                                    return d.target.y;
-                                });
-                        linkText.attr("transform", function(d) {
-                            var angle = (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI);
+
+                        links.attr("transform", function(d) {
+                            var angle = rotationAngle(d.source, d.target); //(Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI);
                             return "translate(" + d.source.x + "," + d.source.y + ") " +
                                     "rotate(" + angle + ")";
                         });
-                        
-                        linkLabels.attr("transform", function(d){
+
+                        linkLines.attr('d', function(d) {
+                            var l = linkLength(d.source, d.target);
+                            var p = "M25 0.5 L" + (l - 25) + " 0.5 l-7 -7 l0 14 l7 -7 Z";
+                            
+                            return p;
+                        });
+
+                        linkLabels.attr("transform", function(d) {
+
                             var angle = (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI);
-                            if (Math.abs(angle) > 90) return "rotate (180 75 0)";
+                            if (Math.abs(angle) > 90)
+                                return "rotate (180 " + linkLength(d.source, d.target)/2 + " 0)";
+
+                        }).attr('x', function(d) {
+                            return linkLength(d.source, d.target) / 2;
                         })
 
 
@@ -184,8 +210,8 @@ svcmodule.directive('d3Graph', [function() {
                             return "translate(" + d.x + "," + d.y + ")";
                         });
                     });
-                    
-                    
+
+
                 }
 
                 scope.$watch(attrs.graph, function(old, newval) {
