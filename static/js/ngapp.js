@@ -89,7 +89,7 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
             var graph = ngd3(data.data);
             graph.nodes[0].x = $scope.width / 2;
             graph.nodes[0].y = $scope.height / 2;
-            graph.nodes[0].fixed = true;
+            //graph.nodes[0].fixed = true;
             $scope.graph = graph;
             /*
             //merge with existing

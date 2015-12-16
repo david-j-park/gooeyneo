@@ -13,7 +13,7 @@
 
 text {
     stroke: none;
-    fill: #003366;
+    fill: #fff;
     font-size: 10px;
 }
 
@@ -21,7 +21,32 @@ text {
     stroke: #cecece
 }
 
-.linkText text {
-    font-size: 8px;
-    fill: #cecece;
+.link text {
+    font-size: 9px;
+    fill: #333;
+}
+
+.connector {
+    fill: #333;
+}
+
+.node.Application {
+    fill: #009900;
+}
+
+.node.Database {
+    fill: #003399;
+}
+
+.node.Server {
+    fill: #9cf;
+}
+
+svg {
+    background-color: #eee;
+    margin: 10px auto;
+}
+
+.selected {
+    stroke: yellow;
 }

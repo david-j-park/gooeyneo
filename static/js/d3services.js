@@ -57,6 +57,7 @@ svcmodule.directive('d3Graph', [function() {
                         .size([scope.width, scope.height])
                         .charge(-500)
                         .linkDistance(150)
+                        .linkStrength(0.5)
                         .gravity(0.1)
                         .friction(0.6);
                 var svg = d3.select(element[0]).append('svg')
@@ -91,6 +92,14 @@ svcmodule.directive('d3Graph', [function() {
                     function linkLength(p1, p2) {
                         return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
                     }
+                    
+                    var drag = force.drag();
+                    drag.on('dragend', function(d){
+                        //console.log('Done dragging');
+                    });
+                    drag.on('dragstart', function(d){
+                        //d.fixed = true;
+                    })
 
                     force.nodes(scope.graph.nodes)
                             .links(scope.graph.links)
@@ -115,7 +124,7 @@ svcmodule.directive('d3Graph', [function() {
                     link.append('text').attr('text-anchor', 'middle')
                             .each(function(d) {
                                 lindex[d.id] = true;
-                                console.log(lindex);
+                                //console.log(lindex);
                             });
                             
                     link.append('path');
@@ -134,21 +143,27 @@ svcmodule.directive('d3Graph', [function() {
                     var linkLines = links.selectAll('path').attr('d', function(d) {
                         var l = linkLength(d.source, d.target);
                         var end = l - 25;
-                        console.log(end);
+                        //console.log(end);
                         var p = "M25 0.5 L" + end + " 0.5 Z";
                         return p;
-                    });
+                    }).attr('class', 'connector');
 
                     var node = svg.selectAll('.node')
                             .data(scope.graph.nodes)
-                            .attr('class', 'node').on('dblclick', nodeClick);
+                            .attr('class', function(d){
+                                return 'node ' + d.labels[0];
+                    }).on('dblclick', nodeClick).on('click', function(d){
+                        if (d3.event.defaultPrevented) return;
+                        var el = d3.select(this);
+                        el.classed('selected', !el.classed('selected'));
+                    });
 
                     var grp = node.enter().append('g').attr("transform", function(d) {
                         return "translate(" + d.x + "," + d.y + ")";
-                    }).attr('class', 'node').on('click', function(d) {
-                        d.fixed = true;
-                    }).on('dblclick', nodeClick).call(force.drag).each(function(d) {
-                        nindex[d._id] = true;
+                    }).attr('class', function(d){
+                        return 'node ' + d.labels[0];
+                    }).on('dblclick', nodeClick).call(drag).each(function(d) {
+                        nindex[d.id] = true;
 //                        console.log(nindex);
                     });
 
