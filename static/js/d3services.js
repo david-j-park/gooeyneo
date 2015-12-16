@@ -62,8 +62,7 @@ svcmodule.directive('d3Graph', [function() {
                         .friction(0.6);
                 var svg = d3.select(element[0]).append('svg')
                         .attr('width', scope.width)
-                        .attr('height', scope.height)
-                        .append('g');
+                        .attr('height', scope.height);
 
                 // "indexes" of ids in the nodes/links arrays
                 var nindex = {}, lindex = {};
@@ -73,6 +72,9 @@ svcmodule.directive('d3Graph', [function() {
                 scope.graph.links.forEach(function(val) {
                     lindex[val.id] = true;
                 })
+                
+                var linkGroup = svg.append('g').attr('class', 'lg');
+                    
 
                 function viz() {
 
@@ -112,7 +114,7 @@ svcmodule.directive('d3Graph', [function() {
                     }
 
                     /* link labels */
-                    var links = svg.selectAll('.link')
+                    var links = linkGroup.selectAll('.link')
                             .data(scope.graph.links);
 
                     var link = links.enter().append('g').attr("transform", function(d) {
