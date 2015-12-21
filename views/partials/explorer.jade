@@ -1,1 +1,19 @@
-d3-graph(graph="graph",width="width",height="height",on-node-click="nodeClick")
+.row
+    .col-sm-12
+        h2 Graph Explorer
+.row
+    .col-sm-9
+        d3-graph(graph="graph",width="width",height="height",on-node-click="nodeClick")
+    .col-sm-3
+        .form-group
+            label Search by Name
+            input.form-control(ng-model="searchTerm",ng-keypress="keyHandler($event)")
+        button.btn.btn-primary.btn-block(ng-click="search()",ng-disabled="!searchTerm")
+            | Search
+            i.fa.fa-spin.fa-spinner(ng-show="searching")
+            | &nbsp;
+            i.fa.fa-search(ng-show="!searching")
+        div(ng-repeat="r in results") 
+            button.btn.btn-default.btn-block(ng-click="chooseStart(r.id)") {{r.name}}
+        div
+            button.btn.btn-warning.btn-block(ng-click="reset()",ng-show="graph.nodes.length > 0") Reset/Clear
