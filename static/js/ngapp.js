@@ -21,6 +21,14 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         $locationProvider.html5Mode(true);
     }]);
 
+app.controller('NavCtrl', ['$scope', '$location', function($scope, $location){
+        $scope.$on('$locationChangeSuccess', function(e, newUrl){
+            $scope.curUrl = $location.url();
+        });
+        
+        $scope.curUrl = $location.url();
+}]);
+
 app.controller('MiniCtrl', ['$scope', function($scope) {
         $scope.nextId = 3;
         $scope.graph = {
@@ -75,34 +83,48 @@ app.controller('MiniCtrl', ['$scope', function($scope) {
 app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scope, $http, ngd3) {
         var linkIndex = [], nodeindex = [];
         $scope.graph = {nodes: [], links: []};
-        $scope.width = 800;
+        $scope.width = undefined;
         $scope.height = 800;
         $scope.startNode = 59;
-
-        $scope.nodeClick = function(n) {
-            $http.get('/api/node/' + n.id + '/related').then(function(data) {
-                $scope.graph = ngd3(data.data, $scope.graph);
+        $scope.searchTerm = "";
+        $scope.results = [];
+        $scope.searching = false;
+        
+        $scope.search = function(){
+            $scope.searching = true;
+            $http.get('/api/node?q=' + $scope.searchTerm).then(function(resp){
+                $scope.results = resp.data;
+                $scope.searching = false;
             });
         };
+        
+        $scope.keyHandler = function(e){
+            if (e.keyCode === 13) $scope.search();
+        }
+        
+        $scope.reset = function(){
+            $scope.graph = {nodes: [], links: []};
+        };
+        
+        $scope.chooseStart = function(id){
+            loadRelated(id, $scope.graph.nodes.length === 0);
+        };
 
-        $http.get('/api/node/' + $scope.startNode + '/related').then(function(data) {
-            var graph = ngd3(data.data);
-            graph.nodes[0].x = $scope.width / 2;
-            graph.nodes[0].y = $scope.height / 2;
-            //graph.nodes[0].fixed = true;
-            $scope.graph = graph;
-            /*
-            //merge with existing
-            newGraph.nodes.forEach(function(val) {
-                if (nodeindex.indexOf(val.id) == -1)
-                    $scope.graph.nodes.push(val);
+        $scope.nodeClick = function(n) {
+            loadRelated(n.id);
+        };
+        
+        function loadRelated(nid, initialize){
+            $http.get('/api/node/' + nid + '/related').then(function(data) {
+                if (initialize){
+                    $scope.graph = ngd3(data.data, $scope.graph, nid, $scope.width /2, $scope.height / 2);
+                } else $scope.graph = ngd3(data.data, $scope.graph);
+                
             });
-            newGraph.links.forEach(function(val) {
-                if (linkIndex.indexOf(val.id) == -1)
-                    $scope.graph.links.push(val);
-            })
-            */
-        });
+        }
+        
+        
+        
     }])
 
 app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', '$window', function($scope, $http, $q, $uibModal, $window) {
