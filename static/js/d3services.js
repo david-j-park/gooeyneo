@@ -1,7 +1,7 @@
 var svcmodule = angular.module('d3Services', []);
 
 svcmodule.factory('neoGraphToD3', function() {
-    return function(neograph, graphToMerge) {
+    return function(neograph, graphToMerge, anchorNode, x, y) {
         var nodes = [], nodeIndex = [], links = [], linkIndex = [];
         if (graphToMerge) {
             nodes = graphToMerge.nodes || [];
@@ -14,6 +14,12 @@ svcmodule.factory('neoGraphToD3', function() {
             /* add nodes to array if not already present */
             val.graph.nodes.forEach(function(n) {
                 if (nodeIndex.indexOf(n.id) === -1) {
+                    //check whether this is our anchor node
+                    if (n.id == anchorNode){
+                        n.fixed = true;
+                        n.x = x;
+                        n.y = y;
+                    }
                     nodes.push(n);
                     nodeIndex.push(n.id).toString();
                 }
@@ -52,6 +58,10 @@ svcmodule.directive('d3Graph', [function() {
                 onNodeClick: '='
             },
             link: function(scope, element, attrs) {
+                var w = angular.element(element[0]).parent()[0].clientWidth;
+                console.log(w);
+                scope.width = scope.width || w;
+                scope.height = scope.height || w;
                 var center = [scope.width / 2, scope.height / 2];
                 var force = d3.layout.force()
                         .size([scope.width, scope.height])
@@ -98,9 +108,10 @@ svcmodule.directive('d3Graph', [function() {
                     var drag = force.drag();
                     drag.on('dragend', function(d){
                         //console.log('Done dragging');
+                        d.fixed = !d.fixed;
                     });
                     drag.on('dragstart', function(d){
-                        //d.fixed = true;
+                        //d.fixed = false;
                     })
 
                     force.nodes(scope.graph.nodes)
@@ -176,7 +187,7 @@ svcmodule.directive('d3Graph', [function() {
 
                     node.selectAll('text').each(function(d) {
                         var el = d3.select(this);
-                        var wds = d.properties.name.split(' ');
+                        var wds = d.properties.name.split(/\s|\./);
                         el.text('');
                         var max = (wds.length < 3 ? wds.length : 3);
                         for (var i = 0; i < max; i++) {
