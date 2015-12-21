@@ -13,5 +13,10 @@ html(ng-app="neoApp")
         link(href="css/style.css",rel="stylesheet",type="text/css")
         base(href="/")
     body
+        ul.nav.nav-tabs(ng-controller="NavCtrl")
+            li(role="presentation",ng-class="{active: curUrl == '/relations'}") 
+                a(href="/relations") Relationship Editor
+            li(role="presentation",ng-class="{active: curUrl == '/explorer'}") 
+                a(href="/explorer") Explorer
         .container-fluid(ng-view)
             h1 This is my view area.
