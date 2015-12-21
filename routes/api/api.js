@@ -77,7 +77,7 @@ module.exports = {
         });
     },
     relatedNodes: function(req, res){
-        var q = "MATCH (n)-[r]-(m) WHERE Id(n) = {sourceId} RETURN n, r, m";
+        var q = "MATCH (n) WHERE Id(n) = {sourceId} OPTIONAL MATCH (n)-[r]-(m) RETURN n, r, m";
         db.beginAndCommitTransaction({statements: [
                 {
                     statement: q,
@@ -89,6 +89,28 @@ module.exports = {
         ]}, function(err, result){
             if (err) throw err;
             res.json(result);
+        });
+    },
+    searchNodes: function(req, res){
+        var q = "MATCH (n) where lower(n.name) =~ {term} return n.name, Id(n)";
+        db.beginAndCommitTransaction({
+            statements: [
+                {
+                    statement: q,
+                    parameters: {
+                        term: ('.*' + req.query.q + '.*').toLowerCase()
+                    }
+                }
+            ]
+        }, function(err, result){
+            if (err) throw err;
+            console.log(result);
+            var out = [];
+            result.results[0].data.forEach(function(val){
+                out.push({id: val.row[1], name: val.row[0]});
+            });
+            //console.log(out);
+            res.json(out);
         });
     }
 };
