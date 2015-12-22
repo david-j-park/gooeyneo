@@ -6,6 +6,7 @@ html(ng-app="neoApp")
         script(src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.4.8/angular.min.js",type="text/javascript")
         script(src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.4.8/angular-route.min.js",type="text/javascript")
         script(src="angular-bootstrap/ui-bootstrap-tpls.min.js",type="text/javascript")
+        script(src="js/lodash.min.js",type="text/javascript")
         script(src="js/ngapp.js",type="text/javascript")
         script(src="js/d3services.js",type="text/javascript")
         link(href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css", rel="stylesheet", integrity="sha256-7s5uDGW3AHqw6xtJmNNtr+OBRJUlgkNJEo78P4b0yRw= sha512-nNo+yCHEyn0smMxSswnf/OnX6/KwJuZTlNZBjauKhTK0c+zT+q5JOCx0UFhXQ6rJR9jg6Es8gPuD2uZcYDLqSw==", crossorigin="anonymous")
@@ -18,5 +19,7 @@ html(ng-app="neoApp")
                 a(href="/relations") Relationship Editor
             li(role="presentation",ng-class="{active: curUrl == '/explorer'}") 
                 a(href="/explorer") Explorer
+            li(role="presentation",ng-class="{active: curUrl == '/reports'}")
+                a(href="/reports") Reports
         .container-fluid(ng-view)
             h1 This is my view area.
