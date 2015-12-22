@@ -15,7 +15,7 @@ svcmodule.factory('neoGraphToD3', function() {
             val.graph.nodes.forEach(function(n) {
                 if (nodeIndex.indexOf(n.id) === -1) {
                     //check whether this is our anchor node
-                    if (n.id == anchorNode){
+                    if (n.id == anchorNode) {
                         n.fixed = true;
                         n.x = x;
                         n.y = y;
@@ -27,14 +27,16 @@ svcmodule.factory('neoGraphToD3', function() {
 
             /* process links to d3's expected format */
             val.graph.relationships.forEach(function(l) {
-                links.push({
-                    source: nodeIndex.indexOf(l.startNode),
-                    target: nodeIndex.indexOf(l.endNode),
-                    type: l.type,
-                    id: l.id,
-                    properties: l.properties
-                });
-                linkIndex.push(l.id);
+                if (linkIndex.indexOf(l.id) === -1) {
+                    links.push({
+                        source: nodeIndex.indexOf(l.startNode),
+                        target: nodeIndex.indexOf(l.endNode),
+                        type: l.type,
+                        id: l.id,
+                        properties: l.properties
+                    });
+                    linkIndex.push(l.id);
+                }
             });
 
         });
@@ -55,7 +57,8 @@ svcmodule.directive('d3Graph', [function() {
                 width: '=',
                 height: '=',
                 graph: '=',
-                onNodeClick: '='
+                onNodeClick: '=',
+                onNodeSelect: '='
             },
             link: function(scope, element, attrs) {
                 var w = angular.element(element[0]).parent()[0].clientWidth;
@@ -82,9 +85,9 @@ svcmodule.directive('d3Graph', [function() {
                 scope.graph.links.forEach(function(val) {
                     lindex[val.id] = true;
                 })
-                
+
                 var linkGroup = svg.append('g').attr('class', 'lg');
-                    
+
 
                 function viz() {
 
@@ -104,13 +107,13 @@ svcmodule.directive('d3Graph', [function() {
                     function linkLength(p1, p2) {
                         return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
                     }
-                    
+
                     var drag = force.drag();
-                    drag.on('dragend', function(d){
+                    drag.on('dragend', function(d) {
                         //console.log('Done dragging');
                         d.fixed = !d.fixed;
                     });
-                    drag.on('dragstart', function(d){
+                    drag.on('dragstart', function(d) {
                         //d.fixed = false;
                     })
 
@@ -124,6 +127,11 @@ svcmodule.directive('d3Graph', [function() {
                             scope.onNodeClick(d);
                     }
 
+                    function nodeSelected(d, i) {
+                        if (typeof (scope.onNodeSelect) === 'function')
+                            scope.onNodeSelect(d);
+                    }
+
                     /* link labels */
                     var links = linkGroup.selectAll('.link')
                             .data(scope.graph.links);
@@ -133,13 +141,13 @@ svcmodule.directive('d3Graph', [function() {
                         return "translate(" + d.source.x + "," + d.source.y + ") " +
                                 "rotate(" + angle + ")";
                     }).attr('class', 'link');
-                            
+
                     link.append('text').attr('text-anchor', 'middle')
                             .each(function(d) {
                                 lindex[d.id] = true;
                                 //console.log(lindex);
                             });
-                            
+
                     link.append('path');
 
 
@@ -163,17 +171,20 @@ svcmodule.directive('d3Graph', [function() {
 
                     var node = svg.selectAll('.node')
                             .data(scope.graph.nodes)
-                            .attr('class', function(d){
+                            .attr('class', function(d) {
                                 return 'node ' + d.labels[0];
-                    }).on('dblclick', nodeClick).on('click', function(d){
-                        if (d3.event.defaultPrevented) return;
+                            }).on('dblclick', nodeClick).on('click', function(d, i) {
+                        //if (d3.event.defaultPrevented) return;
                         var el = d3.select(this);
                         el.classed('selected', !el.classed('selected'));
+                        nodeSelected(d, i);
+                    }).on('mouseover', function(d, i) {
+                        //nodeSelected(d, i);
                     });
 
                     var grp = node.enter().append('g').attr("transform", function(d) {
                         return "translate(" + d.x + "," + d.y + ")";
-                    }).attr('class', function(d){
+                    }).attr('class', function(d) {
                         return 'node ' + d.labels[0];
                     }).on('dblclick', nodeClick).call(drag).each(function(d) {
                         nindex[d.id] = true;
@@ -187,7 +198,7 @@ svcmodule.directive('d3Graph', [function() {
 
                     node.selectAll('text').each(function(d) {
                         var el = d3.select(this);
-                        var wds = d.properties.name.split(/\s|\./);
+                        var wds = d.properties.name.split(/\s/);
                         el.text('');
                         var max = (wds.length < 3 ? wds.length : 3);
                         for (var i = 0; i < max; i++) {
@@ -196,7 +207,7 @@ svcmodule.directive('d3Graph', [function() {
                                 tspan.attr('x', 0).attr('dy', 12);
                         }
                         el.attr('dy', (max - 1) * -5);
-                    }).attr('dominant-baseline', 'middle');
+                    }).attr('dominant-baseline', 'middle').attr('pointer-events', 'none');
 
                     node.exit().each(function(d) {
                         //remove from index
@@ -218,7 +229,7 @@ svcmodule.directive('d3Graph', [function() {
                         linkLines.attr('d', function(d) {
                             var l = linkLength(d.source, d.target);
                             var p = "M25 0.5 L" + (l - 25) + " 0.5 l-7 -7 l0 14 l7 -7 Z";
-                            
+
                             return p;
                         });
 
@@ -226,7 +237,7 @@ svcmodule.directive('d3Graph', [function() {
 
                             var angle = (Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x) * 180 / Math.PI);
                             if (Math.abs(angle) > 90)
-                                return "rotate (180 " + linkLength(d.source, d.target)/2 + " 0)";
+                                return "rotate (180 " + linkLength(d.source, d.target) / 2 + " 0)";
 
                         }).attr('x', function(d) {
                             return linkLength(d.source, d.target) / 2;
