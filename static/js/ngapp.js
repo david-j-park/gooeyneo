@@ -1,6 +1,6 @@
 var app = angular.module('neoApp', ['ngRoute', 'ui.bootstrap', 'd3Services']);
 
-app.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
+app.config(['$routeProvider', '$locationProvider', '$compileProvider', function($routeProvider, $locationProvider, $compileProvider) {
         $routeProvider.when('/relations', {
             templateUrl: 'partials/relations',
             controller: 'RelsCtrl'
@@ -16,18 +16,82 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
                 .when('/explorer', {
                     controller: 'ExploreCtrl',
                     templateUrl: 'partials/explorer'
+                })
+                .when('/reports', {
+                    controller: 'RptCtrl',
+                    templateUrl: 'partials/reports'
                 });
 
         $locationProvider.html5Mode(true);
+        
+        //whitelist data urls
+        $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|data):/);
     }]);
 
-app.controller('NavCtrl', ['$scope', '$location', function($scope, $location){
-        $scope.$on('$locationChangeSuccess', function(e, newUrl){
+app.controller('NavCtrl', ['$scope', '$location', function($scope, $location) {
+        $scope.$on('$locationChangeSuccess', function(e, newUrl) {
             $scope.curUrl = $location.url();
         });
-        
+
         $scope.curUrl = $location.url();
-}]);
+    }]);
+
+app.controller('RptCtrl', ['$scope', '$http', function($scope, $http) {
+
+        $scope.objectTypes = [];
+        $scope.objects = [];
+        $scope.cols = [];
+
+        $scope.getNodes = function(oType) {
+            $http.get('/api/nodes/' + oType).then(function(results) {
+                var obs = results.data.data;
+                // extract unique property names so we can build columns
+                var cols = [];
+                obs.forEach(function(val, i) {
+                    cols = _.union(cols, Object.keys(val));
+                });
+                //put 'name' col at front
+                cols.unshift(cols.splice(cols.indexOf('name'), 1)[0]);
+                $scope.cols = cols;
+                $scope.objects = obs;
+                $scope.exportLink = getExportLink();
+                $scope.selectedType = oType;
+            });
+        };
+        
+        $scope.exportLink = "";
+        
+        
+        function getExportLink(label){
+            var link = "data:text/csv;charset=utf-8,", recordSep = encodeURIComponent("\r\n");
+            $scope.cols.forEach(function(val, index){
+                if (index > 0) link += ',';
+                link += encodeURIComponent('"' + val + '"');
+            });
+            link += recordSep;
+            var tmpRow = [], tmpRows = [];
+            $scope.objects.forEach(function(val, i){
+                //loop through cols and write value to row
+                for (var c=0; c<$scope.cols.length; c++){
+                    tmpRow.push('"' + (val[$scope.cols[c]] || ' ') + '"');
+                }
+                tmpRows.push(encodeURIComponent(tmpRow.join(',')));
+                tmpRow = [];
+            });
+            link += tmpRows.join(recordSep);
+            link += recordSep;
+           
+            
+            return link;
+        };
+
+        /* load object types */
+        $http.get('/api/nodelabels').then(function(results) {
+            $scope.objectTypes = results.data;
+
+        });
+
+    }]);
 
 app.controller('MiniCtrl', ['$scope', function($scope) {
         $scope.nextId = 3;
@@ -89,42 +153,53 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
         $scope.searchTerm = "";
         $scope.results = [];
         $scope.searching = false;
-        
-        $scope.search = function(){
+        $scope.selectedNode = undefined;
+
+        $scope.search = function() {
             $scope.searching = true;
-            $http.get('/api/node?q=' + $scope.searchTerm).then(function(resp){
+            $http.get('/api/node?q=' + $scope.searchTerm).then(function(resp) {
                 $scope.results = resp.data;
                 $scope.searching = false;
             });
         };
-        
-        $scope.keyHandler = function(e){
-            if (e.keyCode === 13) $scope.search();
+
+        $scope.keyHandler = function(e) {
+            if (e.keyCode === 13)
+                $scope.search();
         }
-        
-        $scope.reset = function(){
+
+        $scope.reset = function() {
             $scope.graph = {nodes: [], links: []};
         };
-        
-        $scope.chooseStart = function(id){
+
+        $scope.chooseStart = function(id) {
             loadRelated(id, $scope.graph.nodes.length === 0);
         };
 
         $scope.nodeClick = function(n) {
             loadRelated(n.id);
+            
         };
         
-        function loadRelated(nid, initialize){
-            $http.get('/api/node/' + nid + '/related').then(function(data) {
-                if (initialize){
-                    $scope.graph = ngd3(data.data, $scope.graph, nid, $scope.width /2, $scope.height / 2);
-                } else $scope.graph = ngd3(data.data, $scope.graph);
+        $scope.nodeSelected = function(n){
+            $scope.$apply(function(){
+                $scope.selectedNode = n;
                 
             });
         }
-        
-        
-        
+
+        function loadRelated(nid, initialize) {
+            $http.get('/api/node/' + nid + '/related').then(function(data) {
+                if (initialize) {
+                    $scope.graph = ngd3(data.data, $scope.graph, nid, $scope.width / 2, $scope.height / 2);
+                } else
+                    $scope.graph = ngd3(data.data, $scope.graph);
+
+            });
+        }
+
+
+
     }])
 
 app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', '$window', function($scope, $http, $q, $uibModal, $window) {

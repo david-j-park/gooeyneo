@@ -1,0 +1,11 @@
+h2 Reports
+p Select an object type to view/export:
+button.btn.btn-default(ng-repeat="t in objectTypes | orderBy: '+'",ng-click="getNodes(t)") {{t}}
+table.table.table-striped(ng-show="objects.length")
+    tr
+        th(ng-repeat="c in cols") {{ c }}
+    tr(ng-repeat="o in objects | orderBy: 'name'")
+        td(ng-repeat="c in $parent.cols") {{ o[$parent.cols[$index]] }}
+    tr
+        td
+            a(ng-href="{{exportLink}}",download="{{ selectedType }}.csv") Download CSV #[i.fa.fa-download]
