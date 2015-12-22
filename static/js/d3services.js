@@ -202,7 +202,18 @@ svcmodule.directive('d3Graph', [function() {
                         el.text('');
                         var max = (wds.length < 3 ? wds.length : 3);
                         for (var i = 0; i < max; i++) {
-                            var tspan = el.append('tspan').text(wds[i]);
+                            var tspan = el.append('tspan').text(wds[i]).each(function(){
+                                //ellipsize on last bit
+                                if (i == max - 1){
+                                var self = d3.select(this), textLength = self.node().getComputedTextLength(),
+                                    text = self.text();
+                                    while (textLength > (48) && text.length > 0){
+                                        text = text.slice(0, -1);
+                                        self.text(text + '...');
+                                        textLength = self.node().getComputedTextLength();
+                                    }
+                                }
+                            });
                             if (i > 0)
                                 tspan.attr('x', 0).attr('dy', 12);
                         }

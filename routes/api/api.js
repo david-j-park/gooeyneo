@@ -112,5 +112,16 @@ module.exports = {
             //console.log(out);
             res.json(out);
         });
+    },
+    updateNode: function(req, res){
+        var n = req.body.node;
+        var tmp = {};
+        n.displayProperties.forEach(function(val, i){
+            tmp[val.name] = val.value;
+        });
+        db.updateNode(n.id, tmp, function(err, result){
+            if (err) res.status(500).send(err);
+            res.json(tmp);
+        });
     }
 };

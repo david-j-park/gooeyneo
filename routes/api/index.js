@@ -11,5 +11,6 @@ router.post('/relations', api.queryNodes);
 router.get('/node/:id/related', api.relatedNodes);
 router.get('/node', api.searchNodes);
 router.post('/node', api.createNode);
+router.put('/node', api.updateNode);
 router.get('/graph', api.graphQuery);
 module.exports = router;

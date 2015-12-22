@@ -153,13 +153,17 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
         $scope.searchTerm = "";
         $scope.results = [];
         $scope.searching = false;
+        $scope.collapseSearch = false;
         $scope.selectedNode = undefined;
+        $scope.dirty = false;
+        $scope.trashbin = [];
 
         $scope.search = function() {
             $scope.searching = true;
             $http.get('/api/node?q=' + $scope.searchTerm).then(function(resp) {
                 $scope.results = resp.data;
                 $scope.searching = false;
+                $scope.collapseSearch = false;
             });
         };
 
@@ -170,10 +174,14 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
 
         $scope.reset = function() {
             $scope.graph = {nodes: [], links: []};
+            $scope.searchTerm = "";
+            $scope.selectedNode = null;
+            $scope.dirty = false;
         };
 
         $scope.chooseStart = function(id) {
             loadRelated(id, $scope.graph.nodes.length === 0);
+            $scope.collapseSearch = true;
         };
 
         $scope.nodeClick = function(n) {
@@ -183,11 +191,46 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
         
         $scope.nodeSelected = function(n){
             $scope.$apply(function(){
+                //convert properties to an array before binding
+                var tmp = [];
+                Object.keys(n.properties).forEach(function(val, i){
+                    tmp.push({name: val, value: n.properties[val]});
+                });
+                n.displayProperties = tmp;
                 $scope.selectedNode = n;
                 
             });
         }
-
+        
+        $scope.addProperty = function(){
+            $scope.selectedNode.displayProperties.push({name: "", value: ""});
+        }
+        
+        $scope.deleteProp = function(i){
+            $scope.trashbin.push($scope.selectedNode.displayProperties.splice(i, 1)[0]);
+            $scope.dirty = true;
+        }
+        
+        $scope.saveProperty = function(){
+            $scope.selectedNode.properties[$scope.newProp.name] = $scope.newProp.value;
+            $scope.newProp = undefined;
+        }
+        
+        $scope.cancelProperty = function(){
+            $scope.newProp = undefined;
+        }
+        
+        $scope.updateNode = function(){
+            $scope.saving = true;
+            $http.put('/api/node', {node: $scope.selectedNode}).then(function(data){
+                $scope.saving = false;
+                $scope.dirty = false;
+                $scope.graph.nodes[$scope.graph.nindex.indexOf($scope.selectedNode.id)].properties = data.data;
+            }, function(err){
+                alert(err);
+            })
+        }
+        
         function loadRelated(nid, initialize) {
             $http.get('/api/node/' + nid + '/related').then(function(data) {
                 if (initialize) {
