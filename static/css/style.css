@@ -31,15 +31,39 @@ text {
 }
 
 .node.Application {
-    fill: #009900;
+    fill: #0B4998;
 }
 
 .node.Database {
-    fill: #003399;
+    fill: #009933;
+}
+
+.node.Consumer {
+    fill: #14345C;
+}
+
+.node.Vendor {
+    fill: #748192
+}
+
+.node.API {
+    fill: #80D2A8
+}
+
+.node.Functionality {
+    fill: #FF8800;
 }
 
 .node.Server {
-    fill: #9cf;
+    fill: #555;
+}
+
+.node.Website {
+    fill: #C0E0F0;
+}
+
+.node.Service {
+    fill: #BF6600;
 }
 
 svg {
