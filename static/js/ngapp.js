@@ -211,6 +211,10 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
             $scope.dirty = true;
         }
         
+        $scope.restore = function(prop){
+            $scope.selectedNode.displayProperties.push($scope.trashbin.splice(prop, 1)[0]);
+        }
+        
         $scope.saveProperty = function(){
             $scope.selectedNode.properties[$scope.newProp.name] = $scope.newProp.value;
             $scope.newProp = undefined;

@@ -1,6 +1,6 @@
 .row
     .col-sm-12
-        h2 Graph Explorer
+        h2 Data Explorer
 .row
     .col-sm-8
         d3-graph(graph="graph",width="width",height="height",on-node-click="nodeClick",on-node-select="nodeSelected")
@@ -35,10 +35,21 @@
                                 span(ng-show="!editNode") {{ prop.value }}
                                 input.form-control(ng-model="prop.value",ng-show="editNode",ng-change="$parent.dirty = true")
                             td
-                                a(ng-click="deleteProp($index)") #[i.fa.fa-trash]
+                                a(ng-click="deleteProp($index)",ng-show="prop.name != 'name' && editNode") #[i.fa.fa-trash]
                         tr(ng-show="editNode")
                             td(colspan="2")
                                 button.btn.btn-sm.btn-success(ng-click="addProperty()") Add Property
+                            td
+                                a(ng-click="showTrash=!showTrash") 
+                                    span(ng-show="!showTrash") Show
+                                    span(ng-show="showTrash") Hide
+                                    | &nbsp;Trash
+                        tr(ng-show="showTrash")
+                            td(colspan="2")
+                                p Deleted properties:
+                                ul
+                                    li(ng-repeat="t in trashbin") {{ t.name }}&nbsp;
+                                        a(ng-click="restore($index)") Restore
                         tr(ng-show="dirty")
                             td(colspan="2")
                                 button.btn-sm.btn-primary(ng-click="updateNode()") Commit Changes
