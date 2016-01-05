@@ -1,7 +1,6 @@
 var neo4j = require('node-neo4j')
 , request = require('request')
-, dbUrl = process.env.NEO_HOST + '/db/data'
-, db = new neo4j(process.env.NEO_HOST)
+, db = new neo4j(process.env.NEO_HOST || 'neo:7474')
 , async = require('async');
 
 var opts = {
@@ -77,12 +76,24 @@ module.exports = {
         });
     },
     relatedNodes: function(req, res){
-        var q = "MATCH (n) WHERE Id(n) = {sourceId} OPTIONAL MATCH (n)-[r]-(m) RETURN n, r, m";
+        var existingNodes;
+        if (req.body.en){
+            existingNodes = req.body.en.map(function(val){
+                return parseInt(val);
+            });
+        }
+        
+        var q = "MATCH (n) WHERE Id(n) = {sourceId} OPTIONAL MATCH (n)-[r]-(m) RETURN n, r, m"
+        if (existingNodes) {
+            q = "MATCH (n) WHERE Id(n) = {sourceId} OPTIONAL MATCH (n)-[r]-(m) OPTIONAL MATCH (m)-[r2]-(x) where Id(x) IN {existing} RETURN n, r, m, r2, x";
+        }
+        
         db.beginAndCommitTransaction({statements: [
                 {
                     statement: q,
                     parameters: {
-                        sourceId: parseInt(req.params.id)
+                        sourceId: parseInt(req.params.id),
+                        existing: existingNodes
                     },
                     resultDataContents: ['graph']
                 }

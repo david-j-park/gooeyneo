@@ -20,6 +20,9 @@ app.config(['$routeProvider', '$locationProvider', '$compileProvider', function(
                 .when('/reports', {
                     controller: 'RptCtrl',
                     templateUrl: 'partials/reports'
+                }).otherwise({
+                    controller: 'ExploreCtrl',
+                    templateUrl: 'partials/explorer'
                 });
 
         $locationProvider.html5Mode(true);
@@ -29,6 +32,7 @@ app.config(['$routeProvider', '$locationProvider', '$compileProvider', function(
     }]);
 
 app.controller('NavCtrl', ['$scope', '$location', function($scope, $location) {
+        /* todo: handle '/' case */
         $scope.$on('$locationChangeSuccess', function(e, newUrl) {
             $scope.curUrl = $location.url();
         });
@@ -236,7 +240,9 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
         }
         
         function loadRelated(nid, initialize) {
-            $http.get('/api/node/' + nid + '/related').then(function(data) {
+            $http.post('/api/node/' + nid + '/related', {
+                en: $scope.graph.nindex
+            }).then(function(data) {
                 if (initialize) {
                     $scope.graph = ngd3(data.data, $scope.graph, nid, $scope.width / 2, $scope.height / 2);
                 } else
