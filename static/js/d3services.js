@@ -79,6 +79,10 @@ svcmodule.directive('d3Graph', [function() {
 
                 // "indexes" of ids in the nodes/links arrays
                 var nindex = {}, lindex = {};
+
+                // selected nodes
+                var selections = {};
+
                 scope.graph.nodes.forEach(function(val) {
                     nindex[val.id] = true;
                 });
@@ -122,14 +126,14 @@ svcmodule.directive('d3Graph', [function() {
                             .start();
 
                     /* event handlers */
-                    function nodeClick(d, i) {
+                    function nodeDblClick(d, i) {
                         if (typeof (scope.onNodeClick) === 'function')
                             scope.onNodeClick(d);
                     }
 
                     function nodeSelected(d, i) {
                         if (typeof (scope.onNodeSelect) === 'function')
-                            scope.onNodeSelect(d);
+                            scope.onNodeSelect(d, d3.event);
                     }
 
                     /* link labels */
@@ -171,14 +175,19 @@ svcmodule.directive('d3Graph', [function() {
 
                     var node = svg.selectAll('.node')
                             .data(scope.graph.nodes)
+                    /*
                             .attr('class', function(d) {
                                 return 'node ' + d.labels[0];
-                            }).on('dblclick', nodeClick).on('click', function(d, i) {
-                        //if (d3.event.defaultPrevented) return;
-                        var el = d3.select(this);
-                        el.classed('selected', !el.classed('selected'));
-                        nodeSelected(d, i);
-                    }).on('mouseover', function(d, i) {
+                            }) */
+                            .classed('selected', function(d){
+                                return selections[d.id + ""]
+                            })
+                            .on('dblclick', nodeDblClick)
+                            .on('click', function(d, i) {
+                                var el = d3.select(this);
+                                nodeSelected(d, i);
+                                //el.classed('selected', !el.classed('selected'));
+                            }).on('mouseover', function(d, i) {
                         //nodeSelected(d, i);
                     });
 
@@ -186,7 +195,7 @@ svcmodule.directive('d3Graph', [function() {
                         return "translate(" + d.x + "," + d.y + ")";
                     }).attr('class', function(d) {
                         return 'node ' + d.labels[0];
-                    }).on('dblclick', nodeClick).call(drag).each(function(d) {
+                    }).on('dblclick', nodeDblClick).call(drag).each(function(d) {
                         nindex[d.id] = true;
 //                        console.log(nindex);
                     });
@@ -202,12 +211,12 @@ svcmodule.directive('d3Graph', [function() {
                         el.text('');
                         var max = (wds.length < 3 ? wds.length : 3);
                         for (var i = 0; i < max; i++) {
-                            var tspan = el.append('tspan').text(wds[i]).each(function(){
+                            var tspan = el.append('tspan').text(wds[i]).each(function() {
                                 //ellipsize on last bit
-                                if (i == max - 1){
-                                var self = d3.select(this), textLength = self.node().getComputedTextLength(),
-                                    text = self.text();
-                                    while (textLength > (48) && text.length > 0){
+                                if (i == max - 1) {
+                                    var self = d3.select(this), textLength = self.node().getComputedTextLength(),
+                                            text = self.text();
+                                    while (textLength > (48) && text.length > 0) {
                                         text = text.slice(0, -1);
                                         self.text(text + '...');
                                         textLength = self.node().getComputedTextLength();

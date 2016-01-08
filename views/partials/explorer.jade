@@ -4,6 +4,7 @@
 .row
     .col-sm-8
         d3-graph(graph="graph",width="width",height="height",on-node-click="nodeClick",on-node-select="nodeSelected")
+        
     .col-sm-4
         .row
             .col-sm-12
@@ -20,6 +21,14 @@
                         button.btn.btn-default.btn-block(ng-click="chooseStart(r.id)") {{r.name}}
                     div
                         button.btn.btn-warning.btn-block(ng-click="reset()",ng-show="graph.nodes.length > 0") Reset/Clear
+                    div.well(ng-show="nodeTypes.length > 0")
+                        | Key
+                        ul.list-unstyled
+                            li(ng-repeat="t in nodeTypes") 
+                                i.fa.fa-square(ng-model="$parent.newcolor",colorpicker="hex",ng-click="$parent.selectedLabel = t",ng-style="{'color': $parent.nodeColors[t]}")
+                                | &nbsp; {{ t }}
+                    div
+                        button.btn.btn-success(ng-click="addNode()") Add a node #[i.fa.fa-plus]
         .row
             .col-sm-12
                 div(ng-show="selectedNode",style="padding: 10px")
@@ -53,3 +62,23 @@
                         tr(ng-show="dirty")
                             td(colspan="2")
                                 button.btn-sm.btn-primary(ng-click="updateNode()") Commit Changes
+                div(ng-show="linking",style="padding: 10px")
+                    h4 Add a Link
+                    .row
+                        .col-sm-4
+                            p Source:
+                        .col-sm-8
+                            p {{ newLink.source.properties.name }}
+                    .row
+                        .col-sm-4
+                            p Target: 
+                        .col-sm-8
+                            p {{ newLink.target.properties.name }}
+                    .row
+                        .col-sm-4
+                            p Relationship:
+                        .col-sm-8
+                            input.form-control(type="text",ng-model="newLink.relationship")
+                    .row
+                        .col-sm-12
+                            button.btn.btn-primary(ng-click="addLink()") Save #[i.fa.fa-save]

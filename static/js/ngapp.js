@@ -1,4 +1,4 @@
-var app = angular.module('neoApp', ['ngRoute', 'ui.bootstrap', 'd3Services']);
+var app = angular.module('neoApp', ['ngRoute', 'ui.bootstrap', 'd3Services', 'colorpicker.module', 'LocalStorageModule']);
 
 app.config(['$routeProvider', '$locationProvider', '$compileProvider', function($routeProvider, $locationProvider, $compileProvider) {
         $routeProvider.when('/relations', {
@@ -21,12 +21,11 @@ app.config(['$routeProvider', '$locationProvider', '$compileProvider', function(
                     controller: 'RptCtrl',
                     templateUrl: 'partials/reports'
                 }).otherwise({
-                    controller: 'ExploreCtrl',
-                    templateUrl: 'partials/explorer'
-                });
+            redirectTo: '/explorer'
+        });
 
         $locationProvider.html5Mode(true);
-        
+
         //whitelist data urls
         $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|data):/);
     }]);
@@ -62,21 +61,22 @@ app.controller('RptCtrl', ['$scope', '$http', function($scope, $http) {
                 $scope.selectedType = oType;
             });
         };
-        
+
         $scope.exportLink = "";
-        
-        
-        function getExportLink(label){
+
+
+        function getExportLink(label) {
             var link = "data:text/csv;charset=utf-8,", recordSep = encodeURIComponent("\r\n");
-            $scope.cols.forEach(function(val, index){
-                if (index > 0) link += ',';
+            $scope.cols.forEach(function(val, index) {
+                if (index > 0)
+                    link += ',';
                 link += encodeURIComponent('"' + val + '"');
             });
             link += recordSep;
             var tmpRow = [], tmpRows = [];
-            $scope.objects.forEach(function(val, i){
+            $scope.objects.forEach(function(val, i) {
                 //loop through cols and write value to row
-                for (var c=0; c<$scope.cols.length; c++){
+                for (var c = 0; c < $scope.cols.length; c++) {
                     tmpRow.push('"' + (val[$scope.cols[c]] || ' ') + '"');
                 }
                 tmpRows.push(encodeURIComponent(tmpRow.join(',')));
@@ -84,10 +84,11 @@ app.controller('RptCtrl', ['$scope', '$http', function($scope, $http) {
             });
             link += tmpRows.join(recordSep);
             link += recordSep;
-           
-            
+
+
             return link;
-        };
+        }
+        ;
 
         /* load object types */
         $http.get('/api/nodelabels').then(function(results) {
@@ -148,7 +149,7 @@ app.controller('MiniCtrl', ['$scope', function($scope) {
         }
     }]);
 
-app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scope, $http, ngd3) {
+app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', '$document', 'localStorageService', '$uibModal', function($scope, $http, ngd3, $document, local, $uibModal) {
         var linkIndex = [], nodeindex = [];
         $scope.graph = {nodes: [], links: []};
         $scope.width = undefined;
@@ -161,6 +162,12 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
         $scope.selectedNode = undefined;
         $scope.dirty = false;
         $scope.trashbin = [];
+        $scope.nodeTypes = [];
+        $scope.nodeColors = {};
+        $scope.newcolor = "";
+        $scope.entityTypes = [];
+        $scope.linking = false;
+        $scope.newLink = {};
 
         $scope.search = function() {
             $scope.searching = true;
@@ -170,6 +177,24 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
                 $scope.collapseSearch = false;
             });
         };
+
+        $scope.setNodeColor = function(label, color, addToScope) {
+            if (addToScope) {
+                $scope.$apply(function() {
+                    $scope.nodeColors[label] = color;
+                    local.set('nodeColors', $scope.nodeColors);
+                });
+            }
+            var ss = $document[0].styleSheets[$document[0].styleSheets.length - 1];
+            ss.insertRule(".node." + label + " { fill: " + color + " }", ss.rules.length);
+            console.log(ss);
+        }
+
+        $scope.$on('colorpicker-closed', function(e, data) {
+            if (data.value && data.value != "")
+                $scope.setNodeColor($scope.selectedLabel, $scope.newcolor, true);
+
+        });
 
         $scope.keyHandler = function(e) {
             if (e.keyCode === 13)
@@ -181,6 +206,9 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
             $scope.searchTerm = "";
             $scope.selectedNode = null;
             $scope.dirty = false;
+            $scope.nodeTypes = [];
+            $scope.linking = false;
+            $scope.newLink = {};
         };
 
         $scope.chooseStart = function(id) {
@@ -190,55 +218,120 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
 
         $scope.nodeClick = function(n) {
             loadRelated(n.id);
-            
+
+        };
+
+        $scope.nodeSelected = function(n, evt) {
+            if (evt.shiftKey) {
+                $scope.$apply(function() {
+                    //hide node details
+                    $scope.selectedNode = null;
+                    $scope.linking = true;
+                    if (!$scope.newLink.source)
+                        $scope.newLink.source = n;
+                    else {
+                        $scope.newLink.target = n;
+                    }
+                })
+            }
+            else {
+                $scope.$apply(function() {
+                    //cancel any linking
+                    $scope.linking = false;
+                    $scope.newLink = {};
+                    //convert properties to an array before binding
+                    var tmp = [];
+                    Object.keys(n.properties).forEach(function(val, i) {
+                        tmp.push({name: val, value: n.properties[val]});
+                    });
+                    n.displayProperties = tmp;
+                    $scope.selectedNode = n;
+
+                });
+            }
         };
         
-        $scope.nodeSelected = function(n){
-            $scope.$apply(function(){
-                //convert properties to an array before binding
-                var tmp = [];
-                Object.keys(n.properties).forEach(function(val, i){
-                    tmp.push({name: val, value: n.properties[val]});
+        $scope.addLink = function(){
+            console.log($scope.newLink);
+            $http.post('/api/relationship', {
+                start: $scope.newLink.source.id,
+                end: $scope.newLink.target.id,
+                relationship: $scope.newLink.relationship
+            }).then(function(result){
+                $scope.graph.links.push({
+                    id: result.data._id,
+                    source: $scope.graph.nindex.indexOf(result.data._start + ""),
+                    target: $scope.graph.nindex.indexOf(result.data._end + ""),
+                    type: result.data._type,
+                    properties: {}
                 });
-                n.displayProperties = tmp;
-                $scope.selectedNode = n;
-                
+                $scope.graph.lindex.push(result.data._id + "");
+                $scope.linking = false;
+                $scope.newLink = {};
             });
-        }
-        
-        $scope.addProperty = function(){
+            /*    
+            $scope.graph.links.push({
+                    id: result.data._id,
+                    source: $scope.graph.nindex.indexOf(result.data._start),
+                    target: $scope.graph.nindex.indexOf(result.data._end),
+                    type: result.data._type,
+                    properties: {}
+                });
+                $scope.graph.lindex.push(result.data._id);
+                console.log(result);
+            });
+            */
+        };
+
+        $scope.addProperty = function() {
             $scope.selectedNode.displayProperties.push({name: "", value: ""});
-        }
-        
-        $scope.deleteProp = function(i){
+        };
+
+        $scope.deleteProp = function(i) {
             $scope.trashbin.push($scope.selectedNode.displayProperties.splice(i, 1)[0]);
             $scope.dirty = true;
-        }
-        
-        $scope.restore = function(prop){
+        };
+
+        $scope.restore = function(prop) {
             $scope.selectedNode.displayProperties.push($scope.trashbin.splice(prop, 1)[0]);
-        }
-        
-        $scope.saveProperty = function(){
+        };
+
+        $scope.saveProperty = function() {
             $scope.selectedNode.properties[$scope.newProp.name] = $scope.newProp.value;
             $scope.newProp = undefined;
-        }
-        
-        $scope.cancelProperty = function(){
+        };
+
+        $scope.cancelProperty = function() {
             $scope.newProp = undefined;
         }
-        
-        $scope.updateNode = function(){
+
+        $scope.updateNode = function() {
             $scope.saving = true;
-            $http.put('/api/node', {node: $scope.selectedNode}).then(function(data){
+            $http.put('/api/node', {node: $scope.selectedNode}).then(function(data) {
                 $scope.saving = false;
                 $scope.dirty = false;
                 $scope.graph.nodes[$scope.graph.nindex.indexOf($scope.selectedNode.id)].properties = data.data;
-            }, function(err){
+            }, function(err) {
                 alert(err);
             })
         }
-        
+
+        /* modal node add form */
+        $scope.addNode = function() {
+            $uibModal.open({
+                templateUrl: 'partials/newnode',
+                controller: 'ModalNodeCtrl',
+                resolve: {
+                    types: function() {
+                        return null;
+                    }
+                }
+            }).result.then(function(node) {
+                // add the new node to the graph.
+                loadRelated(node._id, false);
+            });
+        };
+
         function loadRelated(nid, initialize) {
             $http.post('/api/node/' + nid + '/related', {
                 en: $scope.graph.nindex
@@ -247,13 +340,24 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', function($scop
                     $scope.graph = ngd3(data.data, $scope.graph, nid, $scope.width / 2, $scope.height / 2);
                 } else
                     $scope.graph = ngd3(data.data, $scope.graph);
-
+                //update the node types
+                $scope.graph.nodes.forEach(function(val) {
+                    if ($scope.nodeTypes.indexOf(val.labels[0]) == -1) {
+                        $scope.nodeTypes.push(val.labels[0]);
+                    }
+                })
             });
         }
 
+        /* load in node colors from local storage */
+        $scope.nodeColors = local.get('nodeColors') || {};
+        /* set style rules */
+        Object.keys($scope.nodeColors).forEach(function(val) {
+            $scope.setNodeColor(val, $scope.nodeColors[val], false);
+        });
 
 
-    }])
+    }]);
 
 app.controller('RelsCtrl', ['$scope', '$http', '$q', '$uibModal', '$window', function($scope, $http, $q, $uibModal, $window) {
 
@@ -384,8 +488,14 @@ app.controller('GraphCtrl', ['$scope', '$http', 'neoGraphToD3', '$window', funct
     }]);
 
 app.controller('ModalNodeCtrl', ['$scope', '$http', '$uibModalInstance', 'types', function($scope, $http, $uibModalInstance, types) {
-
-        $scope.types = types;
+        if (types == null) {
+            console.log('no types passed');
+            $http.get('/api/nodelabels').then(function(data) {
+                $scope.types = data.data;
+            })
+        }
+        else
+            $scope.types = types;
         $scope.newnode = {extendedProps: []};
 
         $scope.cancel = function() {
