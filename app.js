@@ -3,9 +3,6 @@ var express = require('express')
 , api = require('./routes/api')
 , bodyparser = require('body-parser');
 
-app.get('/', function(req, res){
-    res.render('home');
-});
 app.set('view engine', 'jade');
 
 app.use('/api', bodyparser.json(), api);

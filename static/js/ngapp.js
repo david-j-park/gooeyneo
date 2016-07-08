@@ -221,7 +221,8 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', '$document', '
 
         };
 
-        $scope.nodeSelected = function(n, evt) {
+        $scope.nodeSelected = function(n, evt, el) {
+            
             if (evt.shiftKey) {
                 $scope.$apply(function() {
                     //hide node details
@@ -232,7 +233,7 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', '$document', '
                     else {
                         $scope.newLink.target = n;
                     }
-                })
+                });
             }
             else {
                 $scope.$apply(function() {
@@ -249,6 +250,7 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', '$document', '
 
                 });
             }
+            angular.element(el)[0].classList.toggle("selected");
         };
         
         $scope.addLink = function(){
@@ -256,7 +258,7 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', '$document', '
             $http.post('/api/relationship', {
                 start: $scope.newLink.source.id,
                 end: $scope.newLink.target.id,
-                relationship: $scope.newLink.relationship
+                relationship: $scope.newLink.relationship.toUpperCase()
             }).then(function(result){
                 $scope.graph.links.push({
                     id: result.data._id,

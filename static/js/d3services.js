@@ -131,9 +131,9 @@ svcmodule.directive('d3Graph', [function() {
                             scope.onNodeClick(d);
                     }
 
-                    function nodeSelected(d, i) {
+                    function nodeSelected(d, i, el) {
                         if (typeof (scope.onNodeSelect) === 'function')
-                            scope.onNodeSelect(d, d3.event);
+                            scope.onNodeSelect(d, d3.event, el);
                     }
 
                     /* link labels */
@@ -179,13 +179,10 @@ svcmodule.directive('d3Graph', [function() {
                             .attr('class', function(d) {
                                 return 'node ' + d.labels[0];
                             }) */
-                            .classed('selected', function(d){
-                                return selections[d.id + ""]
-                            })
                             .on('dblclick', nodeDblClick)
                             .on('click', function(d, i) {
                                 var el = d3.select(this);
-                                nodeSelected(d, i);
+                                nodeSelected(d, i, this);
                                 //el.classed('selected', !el.classed('selected'));
                             }).on('mouseover', function(d, i) {
                         //nodeSelected(d, i);
@@ -194,6 +191,7 @@ svcmodule.directive('d3Graph', [function() {
                     var grp = node.enter().append('g').attr("transform", function(d) {
                         return "translate(" + d.x + "," + d.y + ")";
                     }).attr('class', function(d) {
+                        console.log("d3 setting class");
                         return 'node ' + d.labels[0];
                     }).on('dblclick', nodeDblClick).call(drag).each(function(d) {
                         nindex[d.id] = true;
