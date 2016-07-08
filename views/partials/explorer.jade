@@ -78,7 +78,7 @@
                         .col-sm-4
                             p Relationship:
                         .col-sm-8
-                            input.form-control(type="text",ng-model="newLink.relationship")
+                            input.form-control(type="text",ng-model="newLink.relationship",uib-typeahead="r for r in reltypes| filter:$viewValue")
                     .row
                         .col-sm-12
                             button.btn.btn-primary(ng-click="addLink()") Save #[i.fa.fa-save]

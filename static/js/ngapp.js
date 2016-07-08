@@ -168,6 +168,7 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', '$document', '
         $scope.entityTypes = [];
         $scope.linking = false;
         $scope.newLink = {};
+        $scope.reltypes = [];
 
         $scope.search = function() {
             $scope.searching = true;
@@ -357,7 +358,11 @@ app.controller('ExploreCtrl', ['$scope', '$http', 'neoGraphToD3', '$document', '
         Object.keys($scope.nodeColors).forEach(function(val) {
             $scope.setNodeColor(val, $scope.nodeColors[val], false);
         });
-
+        
+        /* load relationship types */
+        $http.get('/api/relationlabels').then(function(results){
+            $scope.reltypes = results.data;
+        });
 
     }]);
 
