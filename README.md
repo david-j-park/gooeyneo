@@ -70,3 +70,4 @@ and I give them all due credit as the inspiration for my pale imitation.
 
 ### License
 
+MIT License (see LICENSE.md)
